@@ -1,11 +1,11 @@
 import pygame
 import numpy as np
 import sys
-import colorsys
+from colorsys import hsv_to_rgb
 
 # config
-WIDTH = 120
-HEIGHT = 60
+WIDTH = 100
+HEIGHT = 50
 SCALE = 10
 FPS = 60
 
@@ -18,44 +18,64 @@ clock = pygame.time.Clock()
 # memoria da tela, onde os pixeis ficam armazenados, -1 = vazio e entre 0 e 360 = cor hue
 world = np.full(shape=(HEIGHT, WIDTH), fill_value=-1)
 
-running = True
+# lookup table para armazenar os valores rgb do hue
+LUT = np.zeros((361,3), dtype=np.uint8)
+for hue in range(361):
+    (r, g, b) = hsv_to_rgb(hue/360, 1, 1)
+    LUT[hue] = (r*255, g*255, b*255)
 
-while running:
+hue_value = 0 # armazenar qual "posicao" do hue estamos
+
+running = True
+pressing = False
+
+while running:        
     # - EVENTOS
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
 
-    screen.fill((0, 0, 0)) # pinta de preto toda a tela
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            pressing = True
 
-    # - RENDERIZAÇÃO
-    ys, xs = np.where(world >= 0)
+        if event.type == pygame.MOUSEBUTTONUP:
+            pressing = False
 
-    for y in range(HEIGHT):
-        for x in range(WIDTH):
-            if world[y, x] == 1:
-                pygame.draw.rect(
+    # - POSICAO MOUSE
+    mouse_x, mouse_y = pygame.mouse.get_pos()
+
+    world_x = mouse_x // SCALE
+    world_y = mouse_y // SCALE
+
+    # - COLOCAR AREIA
+    if pressing and 0 <= world_x < WIDTH and 0 <= world_y < HEIGHT:
+        world[world_y][world_x] = 0
+
+    # - RENDER WORLD
+    if hue_value > 360: # garante o loop da roda de cores
+        hue_value = 0
+
+    screen.fill((0,0,0)) # pinta toda a SCREEN nao o world
+
+    pixel_y, pixel_x = np.where(world >= 0)
+    pixels = list(zip(pixel_y, pixel_x))
+
+    for y, x in pixels:
+        print(world[y][x])
+        pygame.draw.rect(
                     screen,
-                    hsv(hue), 
+                    LUT[world[y][x]], 
                     (x * SCALE, y * SCALE, SCALE, SCALE)
                 )
 
-    # - MOUSE
-    mx, my = pygame.mouse.get_pos()
-
-    gx = mx // SCALE
-    gy = my // SCALE
-
-    # apenas se o mouse estiver dentro da tela
-    if 0 <= gx < WIDTH and 0 <= gy < HEIGHT:
-        
-        # bloco vermelho pra mostrar a pos e print no terminal
-        print(gx, gy)
+    # - RENDER POSICAO DO MOUSE
+    if 0 <= world_x < WIDTH and 0 <= world_y < HEIGHT:
         pygame.draw.rect(
             screen,
-            (255, 0, 0),
-            (gx * SCALE, gy * SCALE, SCALE, SCALE)
+            LUT[hue_value],
+            (world_x * SCALE, world_y * SCALE, SCALE, SCALE)
         )
+    hue_value+=1
 
     pygame.display.flip()
     clock.tick(FPS)
