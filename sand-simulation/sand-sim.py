@@ -48,12 +48,36 @@ while running:
     world_y = mouse_y // SCALE
 
     # - COLOCAR AREIA
-    if pressing and 0 <= world_x < WIDTH and 0 <= world_y < HEIGHT:
-        world[world_y][world_x] = hue_value
-        hue_value+=1
+    if pressing:                                           # apertando
+        if 0 <= world_x < WIDTH and 0 <= world_y < HEIGHT: # dentro da tela
+             if world[world_y, world_x] < 0:                                 # pixel esta vazio
+                world[world_y, world_x] = hue_value
+                hue_value+=1
 
     if hue_value > 360: # garante o loop da roda de cores
         hue_value = 0
+
+    # - MOVIMENTAR AREIA
+    # fazemos um scan geral, de baixo para cima, da direita para a esquerda
+    for y in range(HEIGHT-2, -1, -1):
+        for x in range(-1, WIDTH-1):
+            if world[y, x] < 0:
+                continue
+            
+            if world[y+1, x] < 0:
+                world[y+1, x] = world[y, x]
+                world[y, x] = -1
+                continue
+
+            if world[y+1, x+1] < 0:
+                world[y+1, x+1] = world[y, x]
+                world[y, x] = -1
+                continue
+
+            if world[y+1, x-1] < 0:
+                world[y+1, x-1] = world[y, x]
+                world[y, x] = -1
+                continue
 
     # - RENDER WORLD
     screen.fill((0,0,0)) # pinta toda a SCREEN nao o world
@@ -64,7 +88,7 @@ while running:
     for y, x in pixels:
         pygame.draw.rect(
                     screen,
-                    LUT[world[y][x]], 
+                    LUT[world[y, x]], 
                     (x * SCALE, y * SCALE, SCALE, SCALE)
                 )
 
