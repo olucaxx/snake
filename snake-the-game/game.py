@@ -1,26 +1,33 @@
 import pygame
 import sys
+import random
 
 from snake import Snake
 
 # config
-WIDTH = 20
-HEIGHT = WIDTH
+SCREEN_SIZE = 20
 SCALE = 16
 TILES_GAP = 6
-FPS = 5
+fps = 5 # vai aumentar ate 10 
 
 # init 
 pygame.init()
 pygame.display.set_caption("snake the game")
-screen = pygame.display.set_mode((WIDTH * SCALE, HEIGHT * SCALE))
+screen = pygame.display.set_mode((SCREEN_SIZE * SCALE, SCREEN_SIZE * SCALE))
 clock = pygame.time.Clock()
 
 running = True
 
-snake = Snake(WIDTH)
+grid = {(y, x) for y in range(SCREEN_SIZE) for x in range(SCREEN_SIZE)}
 
 pending_moves = []
+
+def spawn_food(grid, snake_body):
+    availiable = grid - set(snake_body)
+    return random.choice(tuple(availiable))
+
+snake = Snake(SCREEN_SIZE)
+food = spawn_food(grid, snake.body_sections)
 
 while running:        
     # - EVENTOS
@@ -36,12 +43,31 @@ while running:
     if pending_moves:
         snake.change_direction(pending_moves.pop(0))
 
-    if not snake.move(WIDTH): # snake.move verifica se ela esta viva
+    if not snake.move(SCREEN_SIZE): # snake.move verifica se ela esta viva
         running = False
+
+    if snake.body_sections[0] == food:
+        food = spawn_food(grid, snake.body_sections)
+        snake.has_growth += 1
+
+        if fps < 10:
+            fps = min(10, 5 + (len(snake.body_sections) - 5) * 0.33)
+
 
     # - RENDERIZAR
     screen.fill((0,0,0))
 
+    # render food
+    pygame.draw.rect(
+                    screen,
+                    (255,0,0), 
+                    ((food[1] * SCALE) + TILES_GAP / 2, 
+                     (food[0] * SCALE) + TILES_GAP / 2, 
+                     SCALE - TILES_GAP, 
+                     SCALE - TILES_GAP)
+                )
+
+    # render snake
     for i, (y, x) in enumerate(snake.body_sections):
         sx = (x * SCALE) + TILES_GAP / 2
         sy = (y * SCALE) + TILES_GAP / 2
@@ -73,7 +99,7 @@ while running:
                 )
 
     pygame.display.flip()
-    clock.tick(FPS)
+    clock.tick(fps)
 
 pygame.quit()
 sys.exit()
